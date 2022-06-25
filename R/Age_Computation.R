@@ -325,5 +325,5 @@ Age_Computation <- function(
   }
 
   Info=list("Sampling"=echantillon,"Model_GrowthCurve"=Model_GrowthCurve, "Distribution"=distribution,"PriorAge"=PriorAge)
-  return(list("Info" = Info, "Estimates" = R))
+  return(list("Info" = Info, "Estimates" = as.data.frame(R)))
 }
