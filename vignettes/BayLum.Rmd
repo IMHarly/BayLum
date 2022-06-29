@@ -461,7 +461,9 @@ Age <-
 
 # Write required .csv-files required for `Generate_DataFile()` and `Generate_DataFile_MG()`
 
-It is possible to write required .csv-files using `write_BayLumFiles()` directly from R. If we again consider *sampl1*, we have the following information: 
+The .csv-files required by `Generate_DataFile()` and `Generate_DataFile_MG()` can be written using `write_BayLumFiles()`. 
+To reproduce the the  
+
 - single-grain OSL-measurement of only a single grain (disc = 2, grain = 32)
 - environmental dose rate: 2.512 +- 0.237191905
 ![image](https://user-images.githubusercontent.com/76141501/176373045-1b624f71-e7bf-4458-903c-182c731f1d5e.png)
