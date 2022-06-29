@@ -1,6 +1,6 @@
 ---
 title: "BayLum: An Introduction"
-author: "Claire Christophe, Anne Philippe, Sebastian Kreutzer, Guillaume Guérin"
+author: "Claire Christophe, Anne Philippe, Sebastian Kreutzer, Guillaume Guérin, Frederik Baumgarten"
 date: 'Updated for BayLum package version `r packageVersion("BayLum")` (`r Sys.Date()`)'
 output:
   rmarkdown::html_vignette:
@@ -240,7 +240,7 @@ your results.**
 
 In the previous example we considered only the simplest case: one sample, and one BIN/BINX-file.
 However, 'BayLum' allows to process multiple BIN/BINX-files for one sample.
-To work with multiple BIN/BINX-files, the names of the subfolders need to beset in argument `Names` and
+To work with multiple BIN/BINX-files, the names of the subfolders need to be set in argument `Names` and
 both files need to be located unter the same `Path`.
 
 For the case
@@ -360,8 +360,7 @@ Age <- AgeS_Computation(
 )
 ```
 
-**Note:** For an automated parallel processing you can set the argument `jags_method = "rjags"` to 
- `jags_method = "rjparallel"`.
+**Note:** For an automated parallel processing you can set the argument `autorun = TRUE`.
 
 ### Remarks
 
@@ -459,6 +458,14 @@ Age <-
   jags_method = 'rjags'
   )
 ```
+
+# Write required .csv-files required for `Generate_DataFile()` and `Generate_DataFile_MG()`
+
+It is possible to write required .csv-files using `write_BayLumFiles()` directly from R. If we again consider *sampl1*, we have the following information: 
+- single-grain OSL-measurement of only a single grain (disc = 2, grain = 32)
+- environmental dose rate: 2.512 +- 0.237191905
+![image](https://user-images.githubusercontent.com/76141501/176373045-1b624f71-e7bf-4458-903c-182c731f1d5e.png)
+
 
 # References {-}
 
