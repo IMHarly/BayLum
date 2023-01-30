@@ -171,30 +171,32 @@
 #' @md
 #' @export
 Age_Computation <- function(
-  DATA,
-  SampleName,
-  PriorAge = c(0.01, 100),
-  BinPerSample = c(1),
-  SavePdf = FALSE,
-  OutputFileName = c("MCMCplot"),
-  OutputFilePath = c(''),
-  SaveEstimates = FALSE,
-  OutputTableName = c("DATA"),
-  OutputTablePath = c(''),
-  LIN_fit = TRUE,
-  Origin_fit = FALSE,
-  distribution = c("cauchy"),
-  I = 1,
-  Iter = 50000,
-  t = 5,
-  n.chains = 3,
-  quiet = FALSE,
-  roundingOfValue = 3
+    DATA,
+    SampleName,
+    PriorAge = c(0.01, 100),
+    BinPerSample = c(1),
+    SavePdf = FALSE,
+    OutputFileName = c("MCMCplot"),
+    OutputFilePath = c(''),
+    SaveEstimates = FALSE,
+    OutputTableName = c("DATA"),
+    OutputTablePath = c(''),
+    LIN_fit = TRUE,
+    Origin_fit = FALSE,
+    distribution = c("cauchy"),
+    I = 1,
+    adapt = 5000,
+    burnin = 25000,
+    Iter = 25000,
+    jags_method = "rjags",
+    t = 1,
+    n.chains = 3,
+    quiet = FALSE,
+    roundingOfValue = 3
 ){
-
   Model_Age<-0
   data(Model_Age,envir = environment())
-
+  
   if(LIN_fit==TRUE){
     cLIN=c('LIN')
   }else{cLIN=c()}
@@ -202,16 +204,17 @@ Age_Computation <- function(
     cO=c("ZO")
   }else{cO=c()}
   Model_GrowthCurve=c(paste("AgeMultiBF_EXP",cLIN,cO,sep=""))
-
+  
   CSBinPerSample=cumsum(BinPerSample)
-
+  
   if(BinPerSample[I]==1){
     index2=0
   }else{
     index2=rep(0,BinPerSample[I])
     index2[2:BinPerSample[I]]=cumsum(DATA$J[(CSBinPerSample[I]-BinPerSample[I]+1):(CSBinPerSample[I]-1)])
   }
-
+  
+  
   dataList = list('N'= DATA$LT[[I]],'sN'=DATA$sLT[[I]],"IT"=DATA$ITimes[[I]],
                   "sDlab"=DATA$dLab[1,(CSBinPerSample[I]-BinPerSample[I]+1):(CSBinPerSample[I])],
                   'J'=DATA$J[(CSBinPerSample[I]-BinPerSample[I]+1):(CSBinPerSample[I])],
@@ -219,66 +222,66 @@ Age_Computation <- function(
                   "ddot"=DATA$ddot_env[1,(CSBinPerSample[I]-BinPerSample[I]+1)],
                   "Sigma"=DATA$ddot_env[2,(CSBinPerSample[I]-BinPerSample[I]+1)]+DATA$ddot_env[1,(CSBinPerSample[I]-BinPerSample[I]+1)]^2*DATA$dLab[2,(CSBinPerSample[I]-BinPerSample[I]+1)],
                   "xbound"=PriorAge,"index"=index2,"BinPerSample"=BinPerSample[I])
-
-  ##open text connection
-  con <- textConnection(Model_Age[[Model_GrowthCurve]][[distribution]])
-
-  jags <- rjags::jags.model(
-    file = con,
-    data = dataList,
-    n.chains = n.chains,
-    n.adapt = Iter,
-    quiet = quiet
-  )
-
-  ##close connection
-  close(con)
-
-  ##set progress.bar
-  if(quiet) progress.bar <- 'none' else progress.bar <- 'text'
-
-  update(jags,Iter, progress.bar = progress.bar)
-  echantillon <-
-    rjags::coda.samples(jags,
-                        c("A", "D", "sD"),
-                        min(Iter, 10000),
-                        thin = t,
-                        progress.bar = progress.bar)
-
+  
+  ##model
+  model <- Model_Age[[Model_GrowthCurve]][[distribution]]
+  
+  ##a text file is wanted as input, so we have to cheat a little bit
+  temp_file <- tempfile(fileext = ".txt")
+  writeLines(model, con = temp_file)
+  
+  ##run JAGS
+  results_runjags <-
+    runjags::run.JAGS(
+      model = model,
+      data = dataList,
+      n.chains = n.chains,
+      monitor = c("A", "D", "sD"),
+      adapt = adapt,
+      burnin = burnin,
+      sample = Iter,
+      silent.jags = quiet,
+      method = jags_method,
+      thin = t
+    )
+  
+  #---processing of JAGS results
+  ##extract mcmc list from runjags object
+  echantillon <- results_runjags$mcmc
+  
+  ##combine chains into one data.frame
+  sample <- as.data.frame(runjags::combine.mcmc(echantillon))
+  
+  # CV
   CV <- gelman.diag(echantillon)
-
-  sample <- echantillon[[1]]
-  for(i in 2:n.chains){
-    sample=rbind(sample,echantillon[[i]])
-  }
-
+  
   ##MCMC plot output
   plot_MCMC(echantillon, sample_names = SampleName)
-
+  
   if(SavePdf){
     dev.print(pdf,file=paste(OutputFilePath,OutputFileName,'.pdf',sep=""),width=8,height=10)
   }
-
-
+  
+  
   cat(paste("\n\n>> Sample name <<\n"))
   cat("----------------------------------------------\n")
   cat(paste(SampleName))
-
+  
   cat(paste("\n\n>> Results of the Gelman and Rubin criterion of convergence <<\n"))
   cat("----------------------------------------------\n")
   cat(paste("\t", "Point estimate", "Uppers confidence interval\n"))
   cat(paste("A\t",round(CV$psrf[1,1],roundingOfValue),"\t\t",round(CV$psrf[1,2],roundingOfValue),"\n"))
   cat(paste("D\t",round(CV$psrf[2,1],roundingOfValue),"\t\t",round(CV$psrf[2,2],roundingOfValue),"\n"))
   cat(paste("sD\t",round(CV$psrf[3,1],roundingOfValue),"\t\t",round(CV$psrf[3,2],roundingOfValue),"\n"))
-
+  
   cat("\n\n---------------------------------------------------------------------------------------------------\n")
   cat(" *** WARNING: The following information are only valid if the MCMC chains have converged  ***\n")
   cat("---------------------------------------------------------------------------------------------------\n\n")
-
+  
   # Matrix of results
   R=matrix(data=NA,ncol=8,nrow=3,dimnames=list(c("A","D","sD"),
-          c("lower bound at 95%","lower bound at 68%","Bayes estimate","upper bound at 68%","upper bound at 95%","","Convergencies: Bayes estimate","Convergencies: uppers credible interval")))
-
+                                               c("lower bound at 95%","lower bound at 68%","Bayes estimate","upper bound at 68%","upper bound at 95%","","Convergencies: Bayes estimate","Convergencies: uppers credible interval")))
+  
   cat(paste("parameter", "\t","Bayes estimate","\t"," Credible interval \n"))
   cat("----------------------------------------------\n")
   cat(paste("A","\t\t", round(mean(sample[,1]),3),'\n'))
@@ -288,22 +291,22 @@ Age_Computation <- function(
   cat("\t\t\t\t at level 95%\t",round(c(HPD_95[2]),2),"\t\t",round(c(HPD_95[3]),roundingOfValue),"\n")
   cat("\t\t\t\t at level 68%\t",round(c(HPD_68[2]),2),"\t\t",round(c(HPD_68[3]),roundingOfValue),"\n")
   cat("----------------------------------------------\n")
-
+  
   R[1,3]=round(mean(sample[,1]),roundingOfValue)
   R[1,c(1,5)]=round(HPD_95[2:3],roundingOfValue)
   R[1,c(2,4)]=round(HPD_68[2:3],roundingOfValue)
-
+  
   cat(paste("D","\t\t", round(mean(sample[,2]),roundingOfValue),'\n'))
   HPD_95=ArchaeoPhases::CredibleInterval(echantillon[[1]][,2],0.95,roundingOfValue = roundingOfValue)
   HPD_68=ArchaeoPhases::CredibleInterval(echantillon[[1]][,2],0.68,roundingOfValue = roundingOfValue)
   cat("\t\t\t\t\t\t lower bound \t upper bound\n")
   cat("\t\t\t\t at level 95%\t",round(c(HPD_95[2]),roundingOfValue),"\t\t",round(c(HPD_95[3]),roundingOfValue),"\n")
   cat("\t\t\t\t at level 68%\t",round(c(HPD_68[2]),roundingOfValue),"\t\t",round(c(HPD_68[3]),roundingOfValue),"\n")
-
+  
   R[2,3]=round(mean(sample[,2]),roundingOfValue)
   R[2,c(1,5)]=round(HPD_95[2:3],roundingOfValue)
   R[2,c(2,4)]=round(HPD_68[2:3],roundingOfValue)
-
+  
   cat("----------------------------------------------\n")
   cat(paste("sD","\t\t", round(mean(sample[,3]),3),'\n'))
   HPD_95=ArchaeoPhases::CredibleInterval(echantillon[[1]][,3],0.95,roundingOfValue = roundingOfValue)
@@ -311,19 +314,19 @@ Age_Computation <- function(
   cat("\t\t\t\t\t\t lower bound \t upper bound\n")
   cat("\t\t\t\t at level 95%\t",round(c(HPD_95[2]),roundingOfValue),"\t\t",round(c(HPD_95[3]),roundingOfValue),"\n")
   cat("\t\t\t\t at level 68%\t",round(c(HPD_68[2]),roundingOfValue),"\t\t",round(c(HPD_68[3]),roundingOfValue),"\n")
-
+  
   R[3,3]=round(mean(sample[,3]),roundingOfValue)
   R[3,c(1,5)]=round(HPD_95[2:3],roundingOfValue)
   R[3,c(2,4)]=round(HPD_68[2:3],roundingOfValue)
-
+  
   R[,6]=c('','','')
   R[,7]=round(CV$psrf[,1],roundingOfValue)
   R[,8]=round(CV$psrf[,2],roundingOfValue)
-
+  
   if(SaveEstimates==TRUE){
     write.csv(R,file=c(paste(OutputTablePath,"Estimates",OutputTableName,".csv",sep="")))
   }
-
+  
   Info=list("Sampling"=echantillon,"Model_GrowthCurve"=Model_GrowthCurve, "Distribution"=distribution,"PriorAge"=PriorAge)
   return(list("Info" = Info, "Estimates" = as.data.frame(R)))
 }
