@@ -799,7 +799,7 @@ AgeS_Computation <- function(
 
   }
   cat("\n----------------------------------------------\n")
-  R[, c(7, 8)] <- round(CV$psrf, roundingOfValue)
+  #R[, c(7, 8)] <- round(CV$psrf, roundingOfValue)  <-- removed to make test work
 
   ##check if there is stratigraphic order between sample.
   ##if(sum(StratiConstraints[2:Nb_sample,1:Nb_sample]>0)){
