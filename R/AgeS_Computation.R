@@ -354,7 +354,7 @@ AgeS_Computation <- function(
     autorun = FALSE,
     quiet = FALSE,
     roundingOfValue = 3,
-    monitor = c("A","D","sD")
+    monitor = c("A","D","sD"),
     ...
 ) {
   #---check to see if DATA input is a runjags-object and extend if so ####
