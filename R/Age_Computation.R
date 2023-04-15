@@ -192,7 +192,8 @@ Age_Computation <- function(
     t = 1,
     n.chains = 3,
     quiet = FALSE,
-    roundingOfValue = 3
+    roundingOfValue = 3,
+    monitor = c("A","D","sD")
 ){
   Model_Age<-0
   data(Model_Age,envir = environment())
@@ -236,7 +237,7 @@ Age_Computation <- function(
       model = model,
       data = dataList,
       n.chains = n.chains,
-      monitor = c("A", "D", "sD"),
+      monitor = monitor,
       adapt = adapt,
       burnin = burnin,
       sample = Iter,
@@ -320,8 +321,8 @@ Age_Computation <- function(
   R[3,c(2,4)]=round(HPD_68[2:3],roundingOfValue)
   
   R[,6]=c('','','')
-  R[,7]=round(CV$psrf[,1],roundingOfValue)
-  R[,8]=round(CV$psrf[,2],roundingOfValue)
+  #R[,7]=round(CV$psrf[,1],roundingOfValue)
+  #R[,8]=round(CV$psrf[,2],roundingOfValue)
   
   if(SaveEstimates==TRUE){
     write.csv(R,file=c(paste(OutputTablePath,"Estimates",OutputTableName,".csv",sep="")))
