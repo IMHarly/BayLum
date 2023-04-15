@@ -192,7 +192,8 @@ Age_Computation <- function(
     t = 1,
     n.chains = 3,
     quiet = FALSE,
-    roundingOfValue = 3
+    roundingOfValue = 3,
+    monitor = c("A", "D", "sD")
 ){
   Model_Age<-0
   data(Model_Age,envir = environment())
