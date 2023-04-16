@@ -194,10 +194,11 @@ Age_Computation <- function(
     quiet = FALSE,
     roundingOfValue = 3,
     monitor = c("A", "D", "sD")
-){
+    ){
+  
   Model_Age<-0
   data(Model_Age,envir = environment())
-  
+    
   if(LIN_fit==TRUE){
     cLIN=c('LIN')
   }else{cLIN=c()}
@@ -248,7 +249,17 @@ Age_Computation <- function(
   
   #---processing of JAGS results
   ##extract mcmc list from runjags object
-  echantillon <- results_runjags$mcmc
+  mcmcList <- results_runjags$mcmc
+  
+  # keep vector of original parameters monitored
+  StandardMonitor <- c("A","D","sD")
+  StandardMonitor.NEW <- StandardMonitor[StandardMonitor %in% monitor]
+
+  # define echantillon
+  echantillon <- mcmc.list()
+  for (i in 1:length(mcmcList)) {
+    echantillon[[i]] <- mcmcList[[i]][, StandardMonitor.NEW]
+    }
   
   ##combine chains into one data.frame
   sample <- as.data.frame(runjags::combine.mcmc(echantillon))
@@ -256,6 +267,25 @@ Age_Computation <- function(
   # CV
   CV <- gelman.diag(echantillon)
   
+  # inspect convergence of all monitored parameters
+  CVfull <- data.frame()
+  
+  AllParameters <- colnames(mcmcList[[1]])
+  
+  ## then run gelman.diag on each parameter separately
+  CVperParameter <- lapply(AllParameters, function(x) {
+    
+    NewMcmcList <- mcmc.list()
+    for (i in 1:length(mcmcList)) {
+      NewMcmcList[[i]] <- mcmcList[[i]][, x]
+    }
+    gelman.diag(NewMcmcList, multivariate = FALSE)$psrf  
+  })
+  
+  ## then build final convergence table
+  CVfull <- do.call(rbind.data.frame, CVperParameter)
+  CVfull$parameter <- AllParameters
+
   ##MCMC plot output
   plot_MCMC(echantillon, sample_names = SampleName)
   
@@ -329,5 +359,6 @@ Age_Computation <- function(
   }
   
   Info=list("Sampling"=echantillon,"Model_GrowthCurve"=Model_GrowthCurve, "Distribution"=distribution,"PriorAge"=PriorAge)
-  return(list("Info" = Info, "Estimates" = as.data.frame(R)))
+  return(list("Info" = Info, "Estimates" = as.data.frame(R), "CVfull" <- CVfull))
 }
+
