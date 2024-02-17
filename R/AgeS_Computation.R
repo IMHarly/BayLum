@@ -354,6 +354,7 @@ AgeS_Computation <- function(
     autorun = FALSE,
     quiet = FALSE,
     roundingOfValue = 3,
+    monitor = c("A","D","sD"),
     ...
 ) {
   #---check to see if DATA input is a runjags-object and extend if so ####
@@ -498,7 +499,7 @@ AgeS_Computation <- function(
           model = temp_file,
           data = dataList,
           n.chains = n.chains,
-          monitor = c("A", "D", "sD"),
+          monitor = monitor,
           adapt = adapt,
           burnin = burnin,
           sample = Iter,
@@ -530,7 +531,7 @@ AgeS_Computation <- function(
           model = temp_file,
           data = dataList,
           n.chains = n.chains,
-          monitor = c("A", "D", "sD"),
+          monitor = monitor,
           adapt = adapt,
           startburnin = process_settings$startburnin,
           startsample = process_settings$startsample,
